@@ -1,0 +1,61 @@
+version: "3.7"
+
+services:
+
+# Here you can define your own service
+# I am using Portainer as an example, to illustrate 
+# remote Docker control through VPN.
+
+# Portainer needs the Docker socket to control the host, refer to Portainer docs for more info.
+# Portainer data is stored in a docker volume created with the same name
+# we're exposing port 9000 which is the default service port for Portainer
+# Network is being defined manually to override any issues with on-going VPN connections
+
+    portainer-web:
+      image: portainer/portainer
+      container_name: "portainer-web"
+      expose:
+        - "9000"
+      restart: always
+      volumes:
+        - portainer:/data
+        - /var/run/docker.sock:/var/run/docker.sock
+      networks:
+          service:
+
+# Nginx-VPN will load VPN configs from the /vpn/ folder attached as a volume
+# Nginx-VPN will load reverse-proxy settings from /proxy/portainer.conf attached as a volume into /etc/nginx/conf.d/default.conf
+# It's linked to read port 9000 from portainer-web
+# stdin_open is equivalent to '$ docker run -i', needed for openvpn to launch the client for some reason
+# devices "/dev/net/tun" and cap_add "NET_ADMIN" needed for OpenVPN
+# exposes port 80 to allow simple connections instead of having to define a port (thanks to nginx reverse-proxy)
+
+  portainer-proxy:
+      image: zalgonoise/nginx-vpn
+      container_name: "portainer-proxy"
+      expose:
+        - "80"
+      devices:
+        - /dev/net/tun
+      cap_add:
+        - "NET_ADMIN"
+      stdin_open: true
+      restart: always
+      volumes:
+        - ./proxy/portainer.conf:/etc/nginx/conf.d/default.conf
+        - ./vpn:/vpn
+      links:
+        - portainer-web
+      networks:
+        service:
+
+volumes:
+    portainer:
+
+networks:
+    service:
+        ipam:
+            driver: default
+            config:
+                - subnet: "10.68.1.0/24"
+                - gateway: "10.68.1.1"
