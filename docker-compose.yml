@@ -30,8 +30,8 @@ services:
 # devices "/dev/net/tun" and cap_add "NET_ADMIN" needed for OpenVPN
 # exposes port 80 to allow simple connections instead of having to define a port (thanks to nginx reverse-proxy)
 
-  portainer-proxy:
-      image: zalgonoise/nginx-vpn
+    portainer-proxy:
+      image: zalgonoise/nginx-vpn:1.0
       container_name: "portainer-proxy"
       expose:
         - "80"
@@ -58,4 +58,3 @@ networks:
             driver: default
             config:
                 - subnet: "10.68.1.0/24"
-                - gateway: "10.68.1.1"
